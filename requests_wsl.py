@@ -62,7 +62,7 @@ data = [fetch_metadata(url) for url in urls if fetch_metadata(url) is not None]
 df = pd.DataFrame(data)
 
 # Append to CSV if file exists, else create new one
-csv_file = "scraper_metadata.csv"
+csv_file = "/mnt/c/USERS/admin/Desktop/test_scrapy/scraper_metadata.csv"
 if os.path.exists(csv_file):
     df.to_csv(csv_file, mode='a', header=False, index=False)  # Append without rewriting header
 else:

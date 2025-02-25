@@ -6,12 +6,40 @@ import os
 class MetadataSpider(scrapy.Spider):
     name = "metadata_spider"
 
-    # Default starting URL
-    default_url = 'https://www.bbc.com/'
+    # Default list of URLs to scrape
+    start_urls = [
+    # "https://www.bbc.com",
+    # "https://www.cnn.com",
+    # "https://timesofindia.indiatimes.com",
+    # "https://www.theguardian.com/international",
+    "https://www.amazon.com",  
+    "https://www.flipkart.com",
+    "https://www.ebay.com",
+    "https://www.alibaba.com",
+    "https://www.walmart.com",
+    # "https://httpbin.org/get",
+    # "https://www.wikipedia.org",
+    # "https://jsonplaceholder.typicode.com/posts",
+    # "http://example.com"
+    ]
+
+    # CSV file path
+    file_path = 'C://Users//ADMIN//Desktop//test_scrapy//net_data.csv'
 
     custom_settings = {
+        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'ROBOTSTXT_OBEY': False,
+    'DOWNLOAD_DELAY': 2,  # Wait 2 sec to reduce detection
+    'DEFAULT_REQUEST_HEADERS': {
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://www.google.com/',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+    },
         'FEEDS': {
-            'C://Users//ADMIN//Desktop//test_scrapy//net_data.csv': {
+            file_path: {
                 'format': 'csv',
                 'fields': ['URL', 'Status Code', 'Response Time (s)', 'Depth', 'IP Address', 
                            'Request Headers', 'Response Headers', 'Content Length', 'User Agent', 
@@ -20,25 +48,27 @@ class MetadataSpider(scrapy.Spider):
         }
     }
 
-    def __init__(self, url=None, *args, **kwargs):
+    def __init__(self, urls=None, *args, **kwargs):
         """
-        Initialize the spider with a starting URL.
-        :param url: The URL to scrape, passed as a parameter.
+        Initialize the spider with a list of URLs.
+        :param urls: Comma-separated list of URLs passed as a parameter.
         """
         super().__init__(*args, **kwargs)
-        self.start_urls = [url] if url else [self.default_url]
 
-        # Check if the CSV file exists, if not, create it with headers
-        file_path = 'C://Users//ADMIN//Desktop//test_scrapy//net_data.csv'
-        if not os.path.exists(file_path):
-            with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+        # If URLs are passed via command line, use those instead of default
+        if urls:
+            self.start_urls = urls.split(',')
+
+        # Ensure the CSV file exists with headers
+        if not os.path.exists(self.file_path):
+            with open(self.file_path, mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
                 writer.writerow(['URL', 'Status Code', 'Response Time (s)', 'Depth', 'IP Address', 
                                  'Request Headers', 'Response Headers', 'Content Length', 
                                  'User Agent', 'Redirected URLs', 'Encoding', 'Cookies'])
 
     def parse(self, response):
-        # Extract metadata
+        """ Extract metadata and append to CSV """
         metadata = {
             "URL": response.url,
             "Status Code": response.status,
@@ -54,15 +84,9 @@ class MetadataSpider(scrapy.Spider):
             "Cookies": json.dumps(response.headers.getlist('Set-Cookie')),
         }
 
-        # Write to CSV
-        file_path = 'C://Users//ADMIN//Desktop//test_scrapy//net_data.csv'
-        with open(file_path, mode='a', newline='', encoding='utf-8') as file:
+        # Append to CSV
+        with open(self.file_path, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow(metadata.values())
 
         self.logger.info(f"Successfully processed {response.url}")
-
-        # Follow pagination links (if any)
-        next_page = response.css('li.next a::attr(href)').get()
-        if next_page:
-            yield response.follow(next_page, self.parse)
